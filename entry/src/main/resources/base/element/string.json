@@ -1,0 +1,24 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "module description"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "description"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "员工考勤打卡"
+    },
+    {
+      "name": "microphone_reason",
+      "value": "声纹注册需要录制 10 个数字，用于考勤打卡时校验是你本人"
+    },
+    {
+      "name": "location_reason",
+      "value": "考勤打卡需要获取你的位置，用于判断是否在打卡点范围内；只在打卡时取一次，不做后台定位"
+    }
+  ]
+}

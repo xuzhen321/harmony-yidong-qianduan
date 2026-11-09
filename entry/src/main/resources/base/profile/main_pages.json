@@ -1,0 +1,11 @@
+{
+  "src": [
+    "pages/Login",
+    "pages/Index",
+    "pages/AdminUsers",
+    "pages/AttendanceTasks",
+    "pages/MyTasks",
+    "pages/Voiceprint",
+    "pages/Checkin"
+  ]
+}
