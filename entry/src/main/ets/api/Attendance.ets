@@ -259,9 +259,9 @@ export function stateText(state: string): string {
   return state;
 }
 
-/** 打卡类型中文名 */
+/** 打卡类型中文名（课程打卡：上课 / 下课） */
 export function checkTypeText(checkType: string): string {
-  return checkType === CHECK_TYPE_OUT ? '下班打卡' : '上班打卡';
+  return checkType === CHECK_TYPE_OUT ? '下课' : '上课';
 }
 
 /* ==================== 时间工具 ==================== */
@@ -350,6 +350,16 @@ export function nowText(hour: number, minute: number): string {
   const now: Date = new Date();
   return `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())} ` +
     `${pad2(hour)}:${pad2(minute)}`;
+}
+
+/**
+ * 设备当前时间往后推 minutesAhead 分钟，拼成输入框默认值 "2026-11-10 12:47"。
+ * 用来给「允许打卡时间」预填：开始 = 现在，结束 = 现在 + 30 分钟。
+ */
+export function nowTextAfter(minutesAhead: number): string {
+  const target: Date = new Date(Date.now() + minutesAhead * 60 * 1000);
+  return `${target.getFullYear()}-${pad2(target.getMonth() + 1)}-${pad2(target.getDate())} ` +
+    `${pad2(target.getHours())}:${pad2(target.getMinutes())}`;
 }
 
 /**

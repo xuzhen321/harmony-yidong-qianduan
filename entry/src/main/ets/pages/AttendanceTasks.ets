@@ -20,8 +20,9 @@ import {
   createManualRecord,
   formatTaskTime,
   getAttendanceTaskDetail,
-  nowText,
+  nowTextAfter,
   pageAttendanceTasks,
+  pad2,
   parseDateTimeText,
   partsToMillis,
   revokeManualRecord,
@@ -160,12 +161,12 @@ struct AttendanceTasks {
     }
   }
 
-  /** 打开新建面板：时间先填好"今天 08:00 ~ 09:30"，人员列表懒加载一次 */
+  /** 打开新建面板：时间先填好"现在 ~ 30 分钟后"，人员列表懒加载一次 */
   openCreate(): void {
     this.formTitle = '';
     this.formCheckType = CHECK_TYPE_IN;
-    this.startInput = nowText(8, 0);
-    this.endInput = nowText(9, 30);
+    this.startInput = nowTextAfter(0);
+    this.endInput = nowTextAfter(30);
     this.selectedIds = [];
     this.panelTip = '';
     // 打卡点默认不填 = 不限位置；要限位置就搜地址或点"用当前位置"
@@ -284,16 +285,16 @@ struct AttendanceTasks {
     this.loading = true;
     this.panelTip = '';
     try {
-      // title 留空就不传，后端按日期 + 类型自动生成
+      // 留空时前端自己按「日期 + 上课/下课打卡」生成，保证文案和后端默认叫法一致
+      const autoTitle: string = `${start.year}-${pad2(start.month)}-${pad2(start.day)} ` +
+        `${this.formCheckType === CHECK_TYPE_IN ? '上课' : '下课'}打卡`;
       const params: CreateAttendanceTaskRequest = {
         checkType: this.formCheckType,
         startAt: toIsoWithOffset(start),
         endAt: toIsoWithOffset(end),
         userIds: this.selectedIds
       };
-      if (title.length > 0) {
-        params.title = title;
-      }
+      params.title = title.length > 0 ? title : autoTitle;
       // 有打卡点才带坐标：不带就是"不限位置"，后端按不校验位置处理
       if (hasLat && hasLng) {
         params.latitude = latitude;
@@ -770,7 +771,7 @@ struct AttendanceTasks {
             .onClick(() => {
               this.setTypeFilter('');
             })
-          Text('上班打卡')
+          Text('上课')
             .fontSize(13)
             .fontColor(this.typeFilter === CHECK_TYPE_IN ? Color.White : '#666666')
             .backgroundColor(this.typeFilter === CHECK_TYPE_IN ? '#0A59F7' : '#E8EAED')
@@ -779,7 +780,7 @@ struct AttendanceTasks {
             .onClick(() => {
               this.setTypeFilter(CHECK_TYPE_IN);
             })
-          Text('下班打卡')
+          Text('下课')
             .fontSize(13)
             .fontColor(this.typeFilter === CHECK_TYPE_OUT ? Color.White : '#666666')
             .backgroundColor(this.typeFilter === CHECK_TYPE_OUT ? '#0A59F7' : '#E8EAED')
@@ -943,11 +944,11 @@ struct AttendanceTasks {
 
           Scroll() {
             Column({ space: 10 }) {
-              Text('任务名称（可选，留空自动生成"日期 + 上班/下班打卡"）')
+              Text('任务名称（可选，留空自动生成"日期 + 上课/下课打卡"）')
                 .fontSize(12)
                 .fontColor('#999999')
                 .width('100%')
-              TextInput({ placeholder: '例如 2026-10-28 上班打卡', text: this.formTitle })
+              TextInput({ placeholder: '例如 2026-11-10 上课打卡', text: this.formTitle })
                 .height(42)
                 .maxLength(64)
                 .onChange((value: string) => {
@@ -958,28 +959,28 @@ struct AttendanceTasks {
                 .fontSize(12)
                 .fontColor('#999999')
                 .width('100%')
-              Row({ space: 10 }) {
-                Text('上班 IN')
-                  .fontSize(13)
-                  .fontColor(this.formCheckType === CHECK_TYPE_IN ? Color.White : '#666666')
-                  .backgroundColor(this.formCheckType === CHECK_TYPE_IN ? '#0A59F7' : '#E8EAED')
-                  .padding({ left: 14, right: 14, top: 7, bottom: 7 })
-                  .borderRadius(14)
-                  .onClick(() => {
-                    this.formCheckType = CHECK_TYPE_IN;
-                  })
-                Text('下班 OUT')
-                  .fontSize(13)
-                  .fontColor(this.formCheckType === CHECK_TYPE_OUT ? Color.White : '#666666')
-                  .backgroundColor(this.formCheckType === CHECK_TYPE_OUT ? '#0A59F7' : '#E8EAED')
-                  .padding({ left: 14, right: 14, top: 7, bottom: 7 })
-                  .borderRadius(14)
-                  .onClick(() => {
-                    this.formCheckType = CHECK_TYPE_OUT;
-                  })
-                Blank()
-              }
-              .width('100%')
+                Row({ space: 10 }) {
+                  Text('上课')
+                    .fontSize(13)
+                    .fontColor(this.formCheckType === CHECK_TYPE_IN ? Color.White : '#666666')
+                    .backgroundColor(this.formCheckType === CHECK_TYPE_IN ? '#0A59F7' : '#E8EAED')
+                    .padding({ left: 14, right: 14, top: 7, bottom: 7 })
+                    .borderRadius(14)
+                    .onClick(() => {
+                      this.formCheckType = CHECK_TYPE_IN;
+                    })
+                  Text('下课')
+                    .fontSize(13)
+                    .fontColor(this.formCheckType === CHECK_TYPE_OUT ? Color.White : '#666666')
+                    .backgroundColor(this.formCheckType === CHECK_TYPE_OUT ? '#0A59F7' : '#E8EAED')
+                    .padding({ left: 14, right: 14, top: 7, bottom: 7 })
+                    .borderRadius(14)
+                    .onClick(() => {
+                      this.formCheckType = CHECK_TYPE_OUT;
+                    })
+                  Blank()
+                }
+                .width('100%')
 
               Text('允许打卡时间（格式 2026-10-28 08:00，设备时区自动带上）')
                 .fontSize(12)
@@ -998,9 +999,9 @@ struct AttendanceTasks {
                   this.endInput = value;
                 })
 
-              // ---- 打卡点（可选，经纬度都留空 = 不限位置） ----
+              // ---- 打卡点（可选，不设 = 不限位置） ----
               Row({ space: 8 }) {
-                Text('打卡点（可选，留空则不限位置）')
+                Text('打卡地点')
                   .fontSize(12)
                   .fontColor('#999999')
                 Blank()
@@ -1085,41 +1086,54 @@ struct AttendanceTasks {
                 .borderRadius(8)
               }
 
-              // 手输坐标只是兜底（现场对不上时用），正常用上面的搜索
-              TextInput({ placeholder: '地点名称（选完搜索结果会自动填）', text: this.formAddress })
-                .height(42)
-                .maxLength(128)
-                .onChange((value: string) => {
-                  this.formAddress = value;
-                })
-              Row({ space: 10 }) {
-                TextInput({ placeholder: '纬度，如 30.572815', text: this.formLatitude })
+              // 选中的打卡点：只读展示（经纬度由「搜地点 / 用当前位置」自动填，不让手输）
+              if (this.formLatitude.length > 0 && this.formLongitude.length > 0) {
+                Column({ space: 2 }) {
+                  Row() {
+                    Text('📍')
+                      .fontSize(13)
+                    Text(this.formAddress.length > 0 ? this.formAddress : '已选打卡点')
+                      .fontSize(13)
+                      .fontColor('#222222')
+                      .layoutWeight(1)
+                      .maxLines(2)
+                      .margin({ left: 4 })
+                  }
+                  .width('100%')
+                  Text(`纬度 ${this.formLatitude}　经度 ${this.formLongitude}`)
+                    .fontSize(11)
+                    .fontColor('#999999')
+                    .width('100%')
+                }
+                .width('100%')
+                .padding(10)
+                .backgroundColor('#F7F8FA')
+                .borderRadius(8)
+              } else {
+                Text('还没选打卡点：不选就是「不限位置」，任何地方都能打卡。')
+                  .fontSize(11)
+                  .fontColor('#999999')
+                  .width('100%')
+              }
+              Row({ space: 8 }) {
+                Text('半径：')
+                  .fontSize(12)
+                  .fontColor('#999999')
+                TextInput({ placeholder: `${DEFAULT_RADIUS_M}`, text: this.formRadius })
                   .layoutWeight(1)
                   .height(42)
-                  .maxLength(20)
-                  .type(InputType.NUMBER_DECIMAL)
+                  .maxLength(4)
+                  .type(InputType.Number)
                   .onChange((value: string) => {
-                    this.formLatitude = value;
+                    this.formRadius = value;
                   })
-                TextInput({ placeholder: '经度，如 104.066801', text: this.formLongitude })
-                  .layoutWeight(1)
-                  .height(42)
-                  .maxLength(20)
-                  .type(InputType.NUMBER_DECIMAL)
-                  .onChange((value: string) => {
-                    this.formLongitude = value;
-                  })
+                Text('米（50 ~ 1000）')
+                  .fontSize(12)
+                  .fontColor('#999999')
               }
               .width('100%')
-              TextInput({ placeholder: `打卡半径（米，50~1000，默认 ${DEFAULT_RADIUS_M}）`, text: this.formRadius })
-                .height(42)
-                .maxLength(4)
-                .type(InputType.Number)
-                .onChange((value: string) => {
-                  this.formRadius = value;
-                })
-              Text('搜出来的坐标就是 GPS 坐标（WGS84，系统地理编码直接给），和后端要求一致，不用换算。' +
-                '如果选出来的点跟现场差几百米（同名地点很多，注意看地址全称），直接到现场点「用当前位置」最准。')
+              Text('搜到的地点直接给 GPS 坐标（WGS84），和后端一致，不用换算。' +
+                '同名地点很多，注意看地址全称；到现场点「用当前位置」最准。')
                 .fontSize(11)
                 .fontColor('#FF8800')
                 .width('100%')
